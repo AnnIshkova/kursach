@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "155633006300",
+    "project_id": "timecheck-f1057",
+    "storage_bucket": "timecheck-f1057.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:155633006300:android:ac933706bbe7786ba3a619",
+        "android_client_info": {
+          "package_name": "com.example.kursach"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBW1U19Apa7wp_R6l31j1Vi7IOecY0f1Sk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
