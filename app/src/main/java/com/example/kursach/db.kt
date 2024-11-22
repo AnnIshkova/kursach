@@ -7,6 +7,7 @@ import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
+import kotlinx.coroutines.flow.Flow
 
 
 @Entity(tableName = "tasks")
@@ -33,16 +34,18 @@ class Category(
     @PrimaryKey(autoGenerate = true)
     var id = 0;
 }
-@Entity(tableName = "statistics")
-class Statistic(
-    var category:Int,
-    var date:String,
-    var time_spent:String
+@Entity(
+    tableName = "statistics",
 
 )
-{
+class Statistic(
+    var category: Int,
+    var date: String,
+    var time_spent: String,
+    var task_id: Int
+) {
     @PrimaryKey(autoGenerate = true)
-    var id = 0;
+    var id = 0
 }
 
 @Dao
@@ -78,6 +81,15 @@ interface TasksDao {
     @Query("UPDATE tasks SET end_time = :endTime, status_task = :status WHERE id = :taskId")
     fun updateTaskEndTime(taskId: Int, endTime: String, status: Boolean)
 
+    @Query("UPDATE tasks SET heading = :heading_new, category = :category_new where id = :task_id")
+    fun updateTaskNameCategory(heading_new: String, category_new: Int, task_id: Int)
+
+    @Query("SELECT DISTINCT date FROM tasks")
+    fun allUniqueDateFlow(): Flow<List<String>>
+
+    @Query("SELECT * FROM categories")
+    fun allCategoryFlow(): Flow<List<Category>>
+
 
     @Insert
     fun insert(category:Category)
@@ -111,9 +123,6 @@ interface TasksDao {
 
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     fun getTaskById(taskId: Int): Task
-
-
-
 
 }
 

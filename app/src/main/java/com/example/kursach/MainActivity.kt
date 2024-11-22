@@ -4,7 +4,6 @@ package com.example.kursach
 
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -65,8 +64,6 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.RadioButton
@@ -83,7 +80,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -158,9 +154,8 @@ class MainActivity : ComponentActivity() {
                     composable("main_screen") { main_screen(controller = controller, db = db) }
                     composable("settings") { settings(controller = controller, db = db) }
                     composable("tasks") { tasks(controller = controller, db = db) }
-                    composable("edit_category") { edit_category(controller = controller, db = db) }
                     composable("statistic") { statistic(controller = controller, db = db) }
-                    composable("tasks_edit") { tasks_edit(controller = controller, db = db) }
+                    composable("tasks_edit/{task_id}") { tasks_edit(controller = controller, db = db, it.arguments?.getString("task_id")) }
 
 
                 }
@@ -177,20 +172,11 @@ class MainActivity : ComponentActivity() {
     fun main_screen(controller: NavHostController, db: AppDatabase) {
         val textfamilyInterMedium = FontFamily(Font(R.font.intermedium))
         val textfamilyInterBold = FontFamily(Font(R.font.interbold))
-        var presses by remember { mutableIntStateOf(0) }
         var showDialog by remember { mutableStateOf(false) }
         var showDialogEditCategory by remember { mutableStateOf(false) }
         val context = LocalContext.current
 
 
-
-        val tasksState = remember { mutableStateOf(emptyList<Task>()) }
-
-        val taskDao = db.taskDao()
-        var allTasks by remember { mutableStateOf(emptyList<Task>()) }
-        var newTaskName by remember { mutableStateOf("") }
-
-        var allUniqueDates by remember { mutableStateOf(db.taskDao().allUniqueDate()) }
 
         var newCategoryName by remember { mutableStateOf("") }
 
@@ -199,7 +185,9 @@ class MainActivity : ComponentActivity() {
         var newCategoryColorGreen by remember { mutableStateOf(false) }
         var newCategoryColorYellow by remember { mutableStateOf(false) }
 
-        var allCategory by remember { mutableStateOf(db.taskDao().allCategory()) }
+        //var allUniqueDates = db.taskDao().allUniqueDate()
+        var allUniqueDates by remember { mutableStateOf(db.taskDao().allUniqueDate()) }
+        var allCategory = db.taskDao().allCategory()
 
         var selectedCategory by remember { mutableStateOf(-1) }
 
@@ -236,7 +224,7 @@ class MainActivity : ComponentActivity() {
             return result
         }
 
-        allUniqueDates = getUniqueDateWithCategory(selectedCategory)
+        //allUniqueDates = getUniqueDateWithCategory(selectedCategory)
 
         /*LaunchedEffect(Unit) {
             tasksState.value =  // Замените на ваш метод получения задач
@@ -368,7 +356,8 @@ class MainActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                     ) {
                         items(allUniqueDates.size) {
-                            var tasksForDate = getTaskWithDateAndCategory(selectedCategory, allUniqueDates[it])
+                            var tasksForDate by remember { mutableStateOf(getTaskWithDateAndCategory(selectedCategory, allUniqueDates[it])) }
+                            //var tasksForDate = getTaskWithDateAndCategory(selectedCategory, allUniqueDates[it])
                             Column {
                                 Text(
                                     text = allUniqueDates[it],
@@ -402,7 +391,7 @@ class MainActivity : ComponentActivity() {
                                                         var timeDifference = calculateTimeDifference(task.start_time, currentDateAndTime)
 
                                                         db.taskDao().updateEndTimeTask(currentDateAndTime, task.id)
-                                                        db.taskDao().insert(Statistic(task.category, task.date, timeDifference.asString))
+                                                        db.taskDao().insert(Statistic(task.category, task.date, timeDifference.asString, task.id))
 
 
                                                     }
@@ -424,7 +413,7 @@ class MainActivity : ComponentActivity() {
                                                         Color.Black,
                                                         RoundedCornerShape(10.dp)
                                                     )
-                                                    .clickable { controller.navigate("tasks_edit") }
+                                                    .clickable { if (!task.status_task) { controller.navigate("tasks_edit/${task.id}") } }
                                                     .padding(10.dp),
                                                 horizontalArrangement = Arrangement.spacedBy(10.dp)
                                             ) {
@@ -620,7 +609,7 @@ class MainActivity : ComponentActivity() {
                                             newCategoryName = ""
 
                                             // Обновление списка категорий
-                                            allCategory = db.taskDao().allCategory()
+                                            //allCategory = db.taskDao().allCategory()
 
                                             // Закрытие диалога, если необходимо
                                             showDialog = false
@@ -806,7 +795,7 @@ class MainActivity : ComponentActivity() {
 
                                         newCategoryName = ""
 
-                                        allCategory = db.taskDao().allCategory()
+                                        //allCategory = db.taskDao().allCategory()
 
                                         showDialogEditCategory = false
                                     },
@@ -887,28 +876,6 @@ class MainActivity : ComponentActivity() {
                     Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    //строка для редактирования категорий
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .shadow(elevation = 10.dp, RoundedCornerShape(25.dp))
-                            .background(Color.White)
-                            .border(2.dp, Color.Black, RoundedCornerShape(25.dp))
-                            .clickable { controller.navigate("edit_category") }
-                            .padding(10.dp),
-                        horizontalArrangement = Arrangement.spacedBy(20.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Image(
-                            painterResource(R.drawable.categories), "",
-                            Modifier.border(2.dp, Color.Black, CircleShape)
-                        )
-                        Text(
-                            text = "Категории",
-                            fontSize = 17.sp,
-                            fontFamily = textfamilyInterBold
-                        )
-                    }
                     //строка для редактирования мелодии уведомлений
                     Row(
                         Modifier
@@ -1698,7 +1665,15 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun tasks_edit(controller: NavHostController, db: AppDatabase) {
+fun tasks_edit(controller: NavHostController, db: AppDatabase, task_id:String?) {
+
+    var context1 = LocalContext.current
+
+    var current_task_id:Int = task_id?.toIntOrNull()?:0
+
+    var current_task = db.taskDao().getTaskById(current_task_id)
+
+
     val textfamilyInterMedium = FontFamily(Font(R.font.intermedium))
     val textfamilyInterBold = FontFamily(Font(R.font.interbold))
     var showDatePicker by remember { mutableStateOf(false) }
@@ -1714,9 +1689,6 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
     var isTimerStopped by remember { mutableStateOf(false) }
     var countDownTimer: CountDownTimer? = null
 
-    var task by remember { mutableStateOf<Task?>(null) }
-
-
     var allCategories by remember { mutableStateOf(db.taskDao().allCategory()) }
 
     var selectedCategory = -1
@@ -1731,10 +1703,9 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
     val sdfTime = SimpleDateFormat("HH:mm")
     var currentDateAndTime = ""
 
-    val sdfDate = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-    taskDate = sdfDate.format(Date())
+    taskDate = current_task.date
 
-
+    taskText = current_task.heading
 
     // Создаем канал уведомлений (если Android O или выше)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -1853,7 +1824,7 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
                                         currentDateAndTime = sdfTime.format(Date())
                                     }
                                     // Вставляем задачу в базу данных
-                                    db.taskDao().insert(Task(selectedCategory, taskText, taskDate, currentDateAndTime, "", false))
+                                    db.taskDao().updateTaskNameCategory(taskText, selectedCategory, current_task.id)
                                     Toast.makeText(context, "Задача изменена", Toast.LENGTH_SHORT).show()
                                     controller.navigate("main_screen")
                                 }
@@ -1869,7 +1840,11 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
                             )
                         }
                         Button(
-                            onClick = { controller.navigate("main_screen") },
+                            onClick =
+                            {
+                                db.taskDao().deleteTask(current_task.id)
+                                //controller.navigate("main_screen")
+                            },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(190, 2, 2, 255)
                             )
@@ -1894,6 +1869,26 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            Row(
+                Modifier
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(15.dp)
+            ){
+                Text(text=current_task.date)
+                Text(text=current_task.start_time)
+                if (current_task.category == -1)
+                {
+                    Text(
+                        text="Без категории"
+                    )
+                }
+                else
+                {
+                    Text(
+                        text=db.taskDao().categoryWithId(current_task.category)
+                    )
+                }
+            }
             val scrollState = rememberScrollState()
 
             Box(
@@ -1903,6 +1898,7 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
                     .background(Color.White, RoundedCornerShape(25.dp))
                     .verticalScroll(scrollState) // Применяем вертикальную прокрутку
             ) {
+
                 TextField(
                     value = taskText,
                     onValueChange = { newText ->
@@ -2079,161 +2075,6 @@ fun tasks_edit(controller: NavHostController, db: AppDatabase) {
         }
     }
 }
-
-
-    //страница редактирования категории
-    @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-    @OptIn(ExperimentalMaterial3Api::class)
-    @Composable
-    fun edit_category(controller: NavHostController, db: AppDatabase) {
-        val textfamilyInterMedium = FontFamily(Font(R.font.intermedium))
-        val textfamilyInterBold = FontFamily(Font(R.font.interbold))
-        var expanded by remember { mutableStateOf(false) }
-        val colorsList = arrayOf("Красный", "Синий", "Зеленый")
-        var selectedText by remember { mutableStateOf(colorsList[0]) }
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-
-        ) {
-            Image(
-                painter = painterResource(R.drawable.background),
-                contentDescription = "",
-                modifier = Modifier.fillMaxSize()
-            )
-
-            Column(
-                modifier = Modifier.fillMaxSize()
-            ) {
-                // Верхняя часть с LazyColumn для категорий
-                LazyColumn(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(10) { index ->
-                        Button(
-                            onClick = {},
-                            colors = ButtonDefaults.buttonColors(
-                                contentColor = Color(0xFF000000),
-                                containerColor = Color(0xFFE7E6E6)
-                            ),
-                            border = BorderStroke(1.dp, Color.Black),
-
-                            ) {
-                            Text(text = "Категория ${index + 1}", fontFamily = textfamilyInterMedium)
-                        }
-                    }
-                }
-
-                // Нижняя часть с настройками редактирования
-                Column(
-                    modifier = Modifier
-                        .weight(1f)// Занимает 50% доступного пространства
-                        .padding(10.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Divider(thickness = 2.dp, color = Color.Black)
-                    Text(
-                        text = "Редактирование категории",
-                        fontSize = 20.sp,
-                        fontFamily = textfamilyInterMedium
-                    )
-                    Text(
-                        text = "Название категории: fn",
-                        fontSize = 15.sp,
-                        fontFamily = textfamilyInterMedium
-                    )
-                    TextField(
-                        value = "",
-                        onValueChange = { },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.White, RoundedCornerShape(25.dp)),
-                        textStyle = TextStyle(fontSize = 18.sp, color = Color.Black),
-                        placeholder = {
-                            Text(
-                                text = "Изменить название",
-                                fontSize = 20.sp,
-                                color = Color.Gray,
-                                textAlign = TextAlign.Center,
-                                fontFamily = textfamilyInterBold
-                            )
-                        },
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        )
-                    )
-                    //меню как combobox
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded },
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.White)
-                            .border(2.dp, Color.Black, RoundedCornerShape(20.dp))
-                    ) {
-                        TextField(
-                            value = selectedText,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = {
-                                ExposedDropdownMenuDefaults.TrailingIcon(
-                                    expanded = expanded
-                                )
-                            },
-                            modifier = Modifier.menuAnchor(),
-                            colors = TextFieldDefaults.colors(
-                                focusedIndicatorColor = Color.White,
-                                unfocusedIndicatorColor = Color.White,
-
-                                )
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(Color.White) // Устанавливаем белый фон для ExposedDropdownMenu
-                        ) {
-                            colorsList.forEach { item ->
-                                DropdownMenuItem(
-                                    text = { Text(text = item) },
-                                    onClick = {
-                                        selectedText = item
-                                        expanded = false
-                                    },
-                                    modifier = Modifier.background(Color.White) // Белый фон для DropdownMenuItem
-                                )
-                            }
-                        }
-                    }
-                    Button(
-                        onClick = { /* Сохранить изменения */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(2, 190, 43, 255)
-                        )
-                    ) {
-                        Text(text = "Сохранить", fontFamily = textfamilyInterMedium)
-                    }
-                    Button(
-                        onClick = { /* Сохранить изменения */ },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(190, 2, 2, 255)
-                        )
-                    ) {
-                        Text(text = "Удалить", fontFamily = textfamilyInterMedium)
-                    }
-                }
-            }
-
-        }
-    }
 
     data class statisticClass(
         val categoryName: String,
