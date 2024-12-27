@@ -29,11 +29,8 @@ class TimerFinishedActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // Получаем выбранный звук из SharedPreferences
         val sharedPreferences = getSharedPreferences("AppPreferences", MODE_PRIVATE)
-        val selectedSoundId = sharedPreferences.getInt("selectedSound", R.raw.alarm_sound) // По умолчанию alarm_sound
-
+        val selectedSoundId = sharedPreferences.getInt("selectedSound", R.raw.alarm_sound)
         setContent {
             TimerFinishedScreen(
                 onStopSound = {
@@ -41,25 +38,20 @@ class TimerFinishedActivity : ComponentActivity() {
                 }
             )
         }
-
-        // Инициализируем и запускаем MediaPlayer с мелодией
         mediaPlayer = MediaPlayer.create(this, selectedSoundId)
         mediaPlayer.isLooping = true
         mediaPlayer.start()
     }
-
     private fun stopAndReturnToMainActivity() {
         if (::mediaPlayer.isInitialized && mediaPlayer.isPlaying) {
             mediaPlayer.stop()
             mediaPlayer.release()
         }
-
         val intent = Intent(this, MainActivity::class.java)
         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
         startActivity(intent)
         finish()
     }
-
     override fun onDestroy() {
         super.onDestroy()
         if (::mediaPlayer.isInitialized) {
@@ -88,7 +80,6 @@ fun TimerFinishedScreen(onStopSound: () -> Unit) {
                 textAlign = TextAlign.Center,
                 fontWeight = FontWeight.Bold
             )
-
             Button(
                 onClick = onStopSound,
                 colors = ButtonDefaults.buttonColors(containerColor = Color.Red)

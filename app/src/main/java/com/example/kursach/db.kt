@@ -7,7 +7,6 @@ import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
 import androidx.room.RoomDatabase
-import kotlinx.coroutines.flow.Flow
 
 
 @Entity(tableName = "tasks")
@@ -15,6 +14,7 @@ class Task(
     var category:Int,
     var heading:String,
     var date: String,
+    var end_date: String,
     var start_time : String,
     var end_time : String,
     var status_task : Boolean
@@ -54,20 +54,11 @@ interface TasksDao {
     @Insert
     fun insert(task:Task)
 
-    @Query("update tasks set heading = :heading_new")
-    fun updateTaskHeading(heading_new:String)
-
-    @Query("select * from tasks where category=:category_in group by category ")
-    fun allTask(category_in:String):List<Task>
-
     @Query("delete from tasks where id = :id1")
     fun deleteTask(id1:Int)
 
     @Query("select distinct date from tasks")
     fun allUniqueDate():List<String>
-
-    @Query("select distinct date from tasks where category = :category_id")
-    fun allUniqueDateWithCategory(category_id: Int):List<String>
 
     @Query("select * from tasks where date = :date1")
     fun allTaskFromDate(date1:String):List<Task>
@@ -75,21 +66,8 @@ interface TasksDao {
     @Query("select * from tasks where date = :date1 and category = :category_id")
     fun allTaskFromDateWithCategory(date1:String, category_id: Int):List<Task>
 
-    @Query("select heading from tasks")
-    fun getHeadingTask():String
-
-    @Query("UPDATE tasks SET end_time = :endTime, status_task = :status WHERE id = :taskId")
-    fun updateTaskEndTime(taskId: Int, endTime: String, status: Boolean)
-
     @Query("UPDATE tasks SET heading = :heading_new, category = :category_new where id = :task_id")
     fun updateTaskNameCategory(heading_new: String, category_new: Int, task_id: Int)
-
-    @Query("SELECT DISTINCT date FROM tasks")
-    fun allUniqueDateFlow(): Flow<List<String>>
-
-    @Query("SELECT * FROM categories")
-    fun allCategoryFlow(): Flow<List<Category>>
-
 
     @Insert
     fun insert(category:Category)
@@ -100,8 +78,11 @@ interface TasksDao {
     @Query("select name from categories where id = :id1")
     fun categoryWithId(id1: Int):String
 
-    @Query("update categories set name = :name_new")
-    fun updateCategoryName(name_new:String)
+    @Query("select color from categories where id = :id1")
+    fun categoryColorWithId(id1: Int):Long
+
+    @Query("update categories set name = :name_new, color = :color_new where id = :id_old")
+    fun updateFullCategory(name_new:String, color_new:Long, id_old:Int)
 
     @Query("delete from categories where id=:id1")
     fun deleteCategory(id1:Int)
@@ -115,8 +96,8 @@ interface TasksDao {
     @Query("update tasks set status_task = :status_new where id = :id1")
     fun updateStatusTask(status_new:Boolean, id1:Int)
 
-    @Query("update tasks set end_time = :end_time_new where id = :id1")
-    fun updateEndTimeTask(end_time_new:String, id1:Int)
+    @Query("update tasks set end_time = :end_time_new, end_date = :end_date_new where id = :id1")
+    fun updateEndTimeTask(end_time_new:String, end_date_new: String, id1:Int)
 
     @Insert
     fun insert(statistic: Statistic)
@@ -124,6 +105,11 @@ interface TasksDao {
     @Query("SELECT * FROM tasks WHERE id = :taskId LIMIT 1")
     fun getTaskById(taskId: Int): Task
 
+    @Query("update tasks set category = -1 where category = :category_old")
+    fun updateTasksCategoryOnNull(category_old: Int)
+
+    @Query("delete from statistics where task_id = :taskId")
+    fun deleteTaskFromStatistics(taskId: Int)
 }
 
 @Database(entities = [Task::class, Category::class, Statistic::class], version = 1)
